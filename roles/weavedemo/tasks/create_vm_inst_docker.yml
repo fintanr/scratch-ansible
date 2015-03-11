@@ -1,0 +1,76 @@
+  - name: Start Ubuntu Instances
+    ec2:
+      region: "{{ aws_region }}"
+      image: "{{ template }}"
+      instance_type: "{{ instance_type }}"
+      key_name: "{{ ssh_key }}"
+      group: "{{ security_group_name }}"
+      wait: yes
+      count: "{{ num_nodes }}"
+    register: weaveinstances
+
+  - debug: msg='Weavedemo Ubuntu IP is {{ item.public_ip }}'
+    with_items: weaveinstances.instances
+
+  - name: Add new instance to host group
+    add_host: hostname={{ item.public_ip }} groupname=weave_ec2hosts 
+    with_items: weaveinstances.instances
+
+  - name: Wait for SSH to come up
+    wait_for: host={{ item.public_dns_name }} port=22 delay=60 timeout=320 state=started
+    with_items: weaveinstances.instances
+
+    #  - name: Start r workers
+    #ec2:
+    #  region: "{{ aws_region }}"
+    #  image: "{{ template }}"
+    #  instance_type: "{{ instance_type }}"
+    #  key_name: "{{ ssh_key }}"
+    #  group: "{{ security_group_name }}"
+#      user_data: "{{ lookup('template', '../templates/worker.j2') }}"
+#count: "{{ num_nodes }}"
+      #wait: yes
+      #register: ec2
+
+      #  - name: Add new instance to host group
+      #add_host: hostname={{ item.public_ip }} groupname=worker
+      #with_items: ec2.instances
+
+#  - name: Wait for SSH to come up
+#    wait_for: host={{ item.public_dns_name }} port=22 delay=60 timeout=320 state=started
+#    with_items: ec2.instances
+
+  - name: Test Command
+    command: "uname -a"
+    with_items: weaveinstances.instances
+
+  - name: Update Image
+    apt: update_cache=yes
+    with_items: weaveinstances.instances
+
+  - name: Add Docker Repository
+    apt_repository:
+      repo: "{{ apt_repository_details }}"
+      update_cache: yes
+      state: present 
+    with_items: weaveinstances.instances
+
+  - name: Add Docker Repository Key
+    apt_key:
+      keyserver: "{{ apt_key_url }}"
+      id: "{{ apt_key_id }}"
+      state: present
+    with_items: weaveinstances.instances
+
+  - name: Install Docker Package
+    apt:
+      name: "{{ docker_package }}"
+      update_cache: yes
+      state: latest
+    with_items: weaveinstances.instances
+
+  - name: Launch Docker Service
+    service:
+      name: docker
+      state: started
+    with_items: weaveinstances.instances

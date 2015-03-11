@@ -1,0 +1,37 @@
+---
+# tasks file for dockerinstall
+
+- name: Test Command
+  command: "uname -a"
+  with_items: weaveinstances.instances
+
+- name: Update Image
+  apt: update_cache=yes
+  with_items: weaveinstances.instances
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: "{{ apt_repository_details }}"
+    update_cache: yes
+    state: present 
+  with_items: weaveinstances.instances
+
+- name: Add Docker Repository Key
+  apt_key:
+    keyserver: "{{ apt_key_url }}"
+    id: "{{ apt_key_id }}"
+    state: present
+  with_items: weaveinstances.instances
+
+- name: Install Docker Package
+  apt:
+    name: "{{ docker_package }}"
+    update_cache: yes
+    state: latest
+  with_items: weaveinstances.instances
+
+- name: Launch Docker Service
+  service:
+    name: docker
+    state: started
+  with_items: weaveinstances.instances

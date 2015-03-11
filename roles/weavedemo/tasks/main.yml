@@ -1,0 +1,6 @@
+---
+  - include: create_secgroup.yml
+  - include: create_vm.yml
+    #- include: create_vm_inst_docker.yml
+  - include: create_inv.yml
+    #  - include: install_docker.yml
